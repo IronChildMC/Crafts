@@ -1,0 +1,163 @@
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recetario Minecraft Java 26.2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,sans-serif;background:#171717;color:#eee}
+header{padding:22px;background:#242424;position:sticky;top:0;z-index:5;border-bottom:1px solid #3a3a3a}
+h1{margin:0 0 6px;font-size:28px}.sub{color:#aaa}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+input,select,button{background:#303030;color:#fff;border:1px solid #555;border-radius:8px;padding:10px 12px;font-size:15px}
+input{min-width:260px;flex:1}button{cursor:pointer}button:hover{background:#3b3b3b}
+main{max-width:1200px;margin:auto;padding:20px}.status{margin-bottom:16px;color:#aaa}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:#222;border:1px solid #383838;border-radius:12px;padding:14px;cursor:pointer}
+.card:hover{border-color:#777;transform:translateY(-1px)}.name{font-weight:700;margin-bottom:5px}
+.id{font-size:12px;color:#888}.type{font-size:12px;color:#aaa;margin-top:7px}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.show{display:flex}.box{width:min(760px,100%);max-height:90vh;overflow:auto;background:#202020;border:1px solid #555;border-radius:14px;padding:20px}
+.close{float:right}.craftgrid{display:grid;grid-template-columns:repeat(3,64px);gap:5px;margin:16px 0}
+.slot{width:64px;height:64px;background:#111;border:1px solid #555;border-radius:6px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;padding:4px}
+.slot:not(.empty){background:#292929}.out{margin-top:10px;padding:12px;background:#292929;border-radius:8px}
+.note{font-size:13px;color:#999;line-height:1.5}
+.badge{display:inline-block;background:#383838;border-radius:999px;padding:3px 8px;font-size:12px;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+<h1>🧱 Recetario Minecraft Java 26.2</h1>
+<div class="sub">Recetas vanilla • datos de los archivos de Minecraft 26.2</div>
+<div class="controls">
+<input id="search" placeholder="🔎 Buscar objeto o receta...">
+<select id="type"><option value="all">Todos</option><option value="crafting_shaped">Crafteo con forma</option><option value="crafting_shapeless">Crafteo sin forma</option><option value="smelting">Horno</option><option value="blasting">Alto horno</option><option value="smoking">Ahumador</option><option value="campfire">Hoguera</option></select>
+<button id="reload">↻ Actualizar datos</button>
+</div>
+</header>
+<main>
+<div id="status" class="status">Cargando recetas de Minecraft 26.2…</div>
+<div id="cards" class="grid"></div>
+<p class="note">La primera carga necesita Internet. Después los datos se guardan en la memoria local del navegador para poder consultar el recetario aunque no tengas conexión. Los datos proceden de los archivos de recetas de Minecraft Java 26.2.</p>
+</main>
+
+<div id="modal" class="modal">
+<div class="box">
+<button class="close" onclick="closeModal()">✕</button>
+<h2 id="mTitle"></h2>
+<div id="mBody"></div>
+</div>
+</div>
+
+<script>
+const BRANCH="26.2";
+const API="https://api.github.com/repos/InventivetalentDev/minecraft-assets/contents/data/minecraft/recipe?ref="+BRANCH;
+const RAW="https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/"+BRANCH+"/data/minecraft/recipe/";
+let recipes=[];
+const cacheKey="mc26.2.recipe.index.v1";
+
+function pretty(id){
+  id=(id||"").replace(/^minecraft:/,"").replaceAll("_"," ");
+  return id.replace(/\b\w/g,c=>c.toUpperCase());
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+async function load(){
+  status.textContent="Buscando lista de recetas…";
+  try{
+    const r=await fetch(API,{headers:{Accept:"application/vnd.github+json"}});
+    if(!r.ok) throw new Error("GitHub API "+r.status);
+    const files=await r.json();
+    const jsonFiles=files.filter(x=>x.name.endsWith(".json"));
+    const all=[];
+    let n=0;
+    for(const f of jsonFiles){
+      n++; status.textContent=`Cargando receta ${n}/${jsonFiles.length}…`;
+      try{
+        const x=await fetch(RAW+encodeURIComponent(f.name));
+        if(x.ok){
+          const data=await x.json();
+          all.push({file:f.name,data});
+        }
+      }catch(e){}
+    }
+    localStorage.setItem(cacheKey,JSON.stringify(all));
+    recipes=all;
+    status.textContent=`${recipes.length} recetas vanilla cargadas desde Minecraft Java 26.2.`;
+    render();
+  }catch(e){
+    const saved=localStorage.getItem(cacheKey);
+    if(saved){
+      recipes=JSON.parse(saved);
+      status.textContent=`Sin Internet: usando ${recipes.length} recetas guardadas anteriormente.`;
+      render();
+    }else{
+      status.textContent="No se pudieron cargar las recetas. Conéctate a Internet y pulsa «Actualizar datos».";
+    }
+  }
+}
+
+function resultId(d){
+  if(d.result?.id) return d.result.id;
+  if(d.result?.item) return d.result.item;
+  return d.result?.item || "unknown";
+}
+function matches(r,q,t){
+  const d=r.data, text=(r.file+" "+JSON.stringify(d)).toLowerCase();
+  return (!q||text.includes(q)) && (t==="all"||d.type?.includes(t));
+}
+function render(){
+  const q=search.value.trim().toLowerCase(), t=type.value;
+  const arr=recipes.filter(r=>matches(r,q,t));
+  status.textContent=`Mostrando ${arr.length} de ${recipes.length} recetas.`;
+  cards.innerHTML=arr.map((r,i)=>{
+    const id=resultId(r.data);
+    return `<div class="card" onclick="showRecipe(${recipes.indexOf(r)})">
+      <div class="name">${esc(pretty(id))}</div>
+      <div class="id">${esc(id)}</div>
+      <div class="type">${esc(r.data.type||"desconocida")}</div>
+    </div>`;
+  }).join("");
+}
+function ingredientName(x){
+  if(!x)return "";
+  if(typeof x==="string")return pretty(x);
+  if(x.item)return pretty(x.item);
+  if(x.tag)return "Cualquiera de #"+pretty(x.tag);
+  return JSON.stringify(x);
+}
+function showRecipe(i){
+  const r=recipes[i],d=r.data;
+  mTitle.textContent=pretty(resultId(d));
+  let html=`<div><span class="badge">${esc(d.type||"")}</span><span class="badge">${esc(r.file)}</span></div>`;
+  if(d.type==="minecraft:crafting_shaped"||d.type==="crafting_shaped"){
+    const map=d.key||{}, p=d.pattern||[];
+    html+=`<h3>🧱 Patrón de crafteo</h3><div class="craftgrid">`;
+    for(let y=0;y<3;y++)for(let x=0;x<3;x++){
+      const ch=(p[y]||"")[x]||" ";
+      html+=ch===" "||!ch?`<div class="slot empty"></div>`:`<div class="slot">${esc(ingredientName(map[ch]))}</div>`;
+    }
+    html+=`</div>`;
+    html+=`<h3>Ingredientes</h3><ul>`;
+    for(const [k,v] of Object.entries(map)) html+=`<li><b>${esc(k)}</b> → ${esc(ingredientName(v))}</li>`;
+    html+=`</ul>`;
+  }else if(d.type==="minecraft:crafting_shapeless"||d.type==="crafting_shapeless"){
+    html+=`<h3>🧩 Ingredientes</h3><ul>`;
+    for(const x of (d.ingredients||[])) html+=`<li>${esc(ingredientName(x))}</li>`;
+    html+=`</ul>`;
+  }else{
+    const ing=d.ingredient||d.ingredients;
+    html+=`<h3>🔥 Ingrediente</h3><p>${esc(ingredientName(ing))}</p>`;
+    if(d.cookingtime) html+=`<p>Tiempo: ${d.cookingtime} ticks</p>`;
+    if(d.experience!=null) html+=`<p>Experiencia: ${d.experience}</p>`;
+  }
+  html+=`<div class="out"><b>Resultado:</b> ${esc(pretty(resultId(d)))} × ${d.result?.count||1}</div>`;
+  mBody.innerHTML=html;modal.classList.add("show");
+}
+function closeModal(){modal.classList.remove("show")}
+search.addEventListener("input",render);type.addEventListener("change",render);
+reload.addEventListener("click",()=>{localStorage.removeItem(cacheKey);load()});
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+load();
+</script>
+</body>
+</html>
