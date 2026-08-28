@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Recetario Minecraft Java 26.2</title>
+<title>Recetario Minecraft Java</title>
 
 <style>
 *{box-sizing:border-box}
@@ -125,6 +126,40 @@ main{
     font-size:12px;
     color:#aaa;
     margin-top:7px;
+}
+
+.version{
+    display:inline-block;
+    margin-top:10px;
+    background:#303030;
+    border:1px solid #444;
+    padding:5px 9px;
+    border-radius:999px;
+    font-size:12px;
+}
+
+.updateBox{
+    display:none;
+    margin:15px 0;
+    padding:15px;
+    background:#292929;
+    border:1px solid #555;
+    border-radius:12px;
+}
+
+.updateBox.show{
+    display:block;
+}
+
+.updateTitle{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:6px;
+}
+
+.updateText{
+    color:#bbb;
+    margin-bottom:12px;
 }
 
 .modal{
@@ -261,12 +296,6 @@ main{
     margin-right:5px;
 }
 
-.cacheInfo{
-    margin-top:8px;
-    font-size:12px;
-    color:#777;
-}
-
 .spinner{
     display:inline-block;
     animation:spin 1s linear infinite;
@@ -276,30 +305,34 @@ main{
     to{transform:rotate(360deg)}
 }
 </style>
+
 </head>
 
 <body>
 
 <header>
 
-<h1>🧱 Recetario Minecraft Java 26.2</h1>
+<h1>🧱 Recetario Minecraft Java</h1>
 
 <div class="sub">
-Recetas vanilla • datos de Minecraft Java 26.2
+Recetas vanilla • actualización automática de versión
+</div>
+
+<div class="version" id="versionLabel">
+Versión: comprobando…
 </div>
 
 <div class="controls">
 
 <input
-    id="search"
-    placeholder="🔎 Buscar objeto o receta..."
+id="search"
+placeholder="🔎 Buscar objeto o receta..."
+
 >
 
 <select id="type">
 
-<option value="all">
-Todos
-</option>
+<option value="all">Todos</option>
 
 <option value="crafting_shaped">
 Crafteo con forma
@@ -327,42 +360,86 @@ Hoguera
 
 </select>
 
+<button id="checkUpdate">
+🔍 Buscar actualización
+</button>
+
 <button id="reload">
-↻ Actualizar datos
+↻ Actualizar versión
 </button>
 
 </div>
 
-<div class="cacheInfo" id="cacheInfo"></div>
-
 </header>
-
 
 <main>
 
-<div id="status" class="status">
+<div
+    id="updateBox"
+    class="updateBox"
+>
+
+<div
+    id="updateTitle"
+    class="updateTitle"
+></div>
+
+<div
+    id="updateText"
+    class="updateText"
+></div>
+
+<button id="acceptUpdate">
+📥 Actualizar ahora
+</button>
+
+<button id="ignoreUpdate">
+Ahora no
+</button>
+
+</div>
+
+<div
+    id="status"
+    class="status"
+>
 Cargando…
 </div>
 
-<div id="cards" class="grid"></div>
+<div
+    id="cards"
+    class="grid"
+></div>
 
 <p class="note">
-La primera vez se descargan las recetas y se guardan en el navegador.
-Las siguientes veces se utilizan los datos guardados y no se vuelven a
-descargar. Pulsa «Actualizar datos» únicamente cuando quieras obtener
-una copia nueva.
+
+💾 Las recetas se guardan por versión en el navegador.
+
+Cuando salga una versión nueva de Minecraft, el recetario
+la detectará automáticamente. Las versiones anteriores no
+se borran.
+
+Si no tienes Internet, se utilizará la última versión que
+tengas guardada.
+
 </p>
 
 </main>
 
-
-<div id="modal" class="modal">
+<div
+    id="modal"
+    class="modal"
+>
 
 <div class="box">
 
-<button class="close" onclick="closeModal()">
-✕
-</button>
+<button
+class="close"
+onclick="closeModal()"
+
+>
+
+✕ </button>
 
 <div id="mTitle"></div>
 
@@ -372,72 +449,86 @@ una copia nueva.
 
 </div>
 
-
 <script>
 
 /* ============================================================
    CONFIGURACIÓN
 ============================================================ */
 
-const BRANCH = "26.2";
 
 /*
-   API DE RECETAS
-*/
-const API =
-"https://api.github.com/repos/InventivetalentDev/minecraft-assets/contents/data/minecraft/recipe?ref="
-+ BRANCH;
+   Manifiesto oficial utilizado por el Launcher de Java Edition.
 
-const RAW =
-"https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/"
-+ BRANCH +
-"/data/minecraft/recipe/";
+   Contiene las versiones disponibles y cuál es la última
+   release.
+*/
+
+const VERSION_MANIFEST =
+"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
 
 /*
-   Biblioteca de texturas 26.2
+   Fuente de las recetas.
 
-   El proyecto minecraft-textures contiene manifiestos
-   y PNG de Minecraft 26.2.
+   La carpeta correspondiente a cada versión se busca
+   automáticamente.
 */
-const TEXTURE_MANIFEST =
-"https://unpkg.com/minecraft-textures@26.2.1/dist/textures/manifest/26.2.json";
 
-const TEXTURE_BASE =
-"https://unpkg.com/minecraft-textures@26.2.1/dist/textures/";
+const ASSET_REPO =
+"https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/";
+
+
+/*
+   API de GitHub para descubrir los archivos de recetas.
+*/
+
+const API_BASE =
+"https://api.github.com/repos/InventivetalentDev/minecraft-assets/contents/data/minecraft/recipe?ref=";
+
+
+/*
+   Versión inicial.
+
+   SOLO se utiliza si nunca se ha abierto el recetario.
+*/
+
+const DEFAULT_VERSION = "26.2";
 
 
 /* ============================================================
    VARIABLES
 ============================================================ */
 
+let currentVersion = null;
+
+let latestVersion = null;
+
 let recipes = [];
 
-let textureManifest = null;
+let pendingVersion = null;
+
+
+/* ============================================================
+   CACHE
+============================================================ */
+
+function recipeCacheKey(version){
+
+    return (
+        "minecraft_recipe_cache_" +
+        version
+    );
+
+}
 
 
 /*
-   IMPORTANTE:
-
-   Las recetas se guardan aquí.
-
-   No se descargan otra vez al abrir el HTML.
+   Guardamos la versión que estaba utilizando
+   el usuario.
 */
-const RECIPE_CACHE =
-"mc26.2.recipe.index.v2";
 
-
-/*
-   El manifiesto de texturas también se guarda.
-*/
-const TEXTURE_CACHE =
-"mc26.2.texture.manifest.v1";
-
-
-/*
-   Evita descargar varias veces la misma textura.
-*/
-const textureURLCache = {};
+const CURRENT_VERSION_KEY =
+"minecraft_current_version";
 
 
 /* ============================================================
@@ -454,12 +545,14 @@ function pretty(id){
         /\b\w/g,
         c => c.toUpperCase()
     );
+
 }
 
 
 function cleanId(id){
 
-    if(!id) return "";
+    if(!id)
+        return "";
 
     return id
         .replace(/^minecraft:/,"")
@@ -486,199 +579,134 @@ function esc(s){
 
 
 /* ============================================================
-   TEXTURAS
+   DETECTAR VERSIÓN
 ============================================================ */
 
-async function loadTextureManifest(){
-
-    /*
-       Primero intentamos usar la copia guardada.
-    */
-
-    const saved =
-        localStorage.getItem(TEXTURE_CACHE);
-
-    if(saved){
-
-        try{
-
-            textureManifest =
-                JSON.parse(saved);
-
-            cacheInfo.textContent =
-                "🖼️ Texturas guardadas en caché";
-
-            return;
-
-        }catch(e){
-
-            localStorage.removeItem(TEXTURE_CACHE);
-
-        }
-
-    }
-
-
-    /*
-       Si no existe, descargamos el manifiesto UNA VEZ.
-    */
+async function checkForUpdates(){
 
     try{
 
+        status.innerHTML =
+            '<span class="spinner">⟳</span> Buscando versión nueva…';
+
+
         const response =
-            await fetch(TEXTURE_MANIFEST);
+            await fetch(
+                VERSION_MANIFEST +
+                "?t=" +
+                Date.now()
+            );
+
 
         if(!response.ok)
             throw new Error(
-                "No se pudo descargar el manifiesto"
+                "Manifest error"
             );
 
-        textureManifest =
+
+        const manifest =
             await response.json();
 
-        localStorage.setItem(
-            TEXTURE_CACHE,
-            JSON.stringify(textureManifest)
-        );
 
-        cacheInfo.textContent =
-            "🖼️ Texturas descargadas y guardadas";
+        latestVersion =
+            manifest.latest.release;
+
+
+        versionLabel.textContent =
+            "Versión actual: " +
+            (currentVersion || DEFAULT_VERSION);
+
+
+        /*
+           ¿Es diferente nuestra versión
+           de la última release?
+        */
+
+        if(
+            currentVersion &&
+            latestVersion !== currentVersion
+        ){
+
+            pendingVersion =
+                latestVersion;
+
+
+            updateTitle.textContent =
+                "🆕 Nueva versión disponible";
+
+
+            updateText.textContent =
+                `Tienes Minecraft ${currentVersion} y `
+                +
+                `la última versión estable es ${latestVersion}. `
+                +
+                `¿Quieres descargar sus recetas?`;
+
+
+            updateBox.classList.add(
+                "show"
+            );
+
+        }else{
+
+            updateBox.classList.remove(
+                "show"
+            );
+
+            status.textContent =
+                `✓ Estás usando la última versión estable: ${latestVersion}`;
+
+        }
 
     }catch(e){
 
         console.warn(
-            "No se pudo cargar el manifiesto de texturas",
+            "No se pudo comprobar la versión",
             e
         );
 
-        textureManifest = null;
 
-        cacheInfo.textContent =
-            "⚠️ No se pudo cargar el manifiesto de texturas";
-
-    }
-
-}
-
-
-/*
-   Busca la textura correspondiente a un item.
-*/
-
-function getTextureURL(id){
-
-    if(!id)
-        return null;
-
-    id = cleanId(id);
-
-    if(textureURLCache[id])
-        return textureURLCache[id];
-
-
-    /*
-       Si tenemos manifiesto, buscamos el item.
-    */
-
-    if(textureManifest){
-
-        const items =
-            textureManifest.items || [];
-
-        const found =
-            items.find(
-                x =>
-                    x.id === "minecraft:" + id ||
-                    x.id === id
-            );
-
-        if(found && found.texture){
-
-            let path =
-                found.texture;
-
-            /*
-               El manifiesto devuelve la ruta relativa.
-            */
-
-            const url =
-                TEXTURE_BASE + path;
-
-            textureURLCache[id] = url;
-
-            return url;
-
-        }
+        status.textContent =
+            `Sin conexión. Usando Minecraft ${currentVersion || DEFAULT_VERSION}.`;
 
     }
-
-
-    /*
-       Fallback.
-
-       Algunas texturas utilizan directamente
-       assets/minecraft/textures/item/
-       o block/.
-    */
-
-    const fallback =
-        TEXTURE_BASE +
-        "assets/minecraft/textures/item/" +
-        id +
-        ".png";
-
-    textureURLCache[id] =
-        fallback;
-
-    return fallback;
-
-}
-
-
-/*
-   Crea una imagen de Minecraft.
-
-   Si falla, simplemente muestra un bloque
-   de sustitución para que la receta siga funcionando.
-*/
-
-function icon(id, className="", alt=""){
-
-    const url =
-        getTextureURL(id);
-
-    if(!url)
-        return "";
-
-    return `
-        <img
-            class="${className}"
-            src="${esc(url)}"
-            alt="${esc(alt || pretty(id))}"
-            loading="lazy"
-            onerror="this.style.display='none'"
-        >
-    `;
 
 }
 
 
 /* ============================================================
-   CARGA DE RECETAS
+   CARGAR RECETAS
 ============================================================ */
 
-async function load(){
+async function loadVersion(version){
+
+    currentVersion =
+        version;
+
+
+    localStorage.setItem(
+        CURRENT_VERSION_KEY,
+        version
+    );
+
+
+    versionLabel.textContent =
+        "Versión: " +
+        version;
+
+
+    const cacheKey =
+        recipeCacheKey(version);
+
 
     /*
-       PRIMERA COSA:
-
-       Miramos si ya tenemos las recetas guardadas.
-
-       Si existen → NO hacemos ninguna petición.
+       PRIMERO buscamos la copia local.
     */
 
     const saved =
-        localStorage.getItem(RECIPE_CACHE);
+        localStorage.getItem(
+            cacheKey
+        );
 
 
     if(saved){
@@ -688,32 +716,30 @@ async function load(){
             recipes =
                 JSON.parse(saved);
 
-            status.textContent =
-                `${recipes.length} recetas cargadas desde la caché.`;
 
-            cacheInfo.textContent =
-                "💾 Recetas guardadas localmente";
+            status.textContent =
+                `${recipes.length} recetas cargadas de Minecraft ${version}.`;
+
 
             render();
+
 
             /*
-               Cargamos también el manifiesto de texturas.
+               Comprobamos si hay una actualización
+               después de cargar los datos.
+
+               Esto NO vuelve a descargar las recetas.
             */
 
-            await loadTextureManifest();
+            checkForUpdates();
 
-            render();
 
             return;
 
         }catch(e){
 
-            console.warn(
-                "Caché dañada, se volverá a descargar."
-            );
-
             localStorage.removeItem(
-                RECIPE_CACHE
+                cacheKey
             );
 
         }
@@ -722,27 +748,39 @@ async function load(){
 
 
     /*
-       SOLO LLEGAMOS AQUÍ LA PRIMERA VEZ.
+       No había caché.
+       Hay que descargarla.
     */
 
-    await downloadRecipes();
+    await downloadVersion(version);
 
 }
 
 
 /* ============================================================
-   DESCARGAR RECETAS
+   DESCARGAR VERSIÓN
 ============================================================ */
 
-async function downloadRecipes(){
+async function downloadVersion(version){
 
     status.innerHTML =
-        '<span class="spinner">⟳</span> Buscando recetas…';
+        `<span class="spinner">⟳</span> Descargando recetas de Minecraft ${esc(version)}…`;
 
 
     try{
 
-        const r =
+        const API =
+            API_BASE +
+            encodeURIComponent(version);
+
+
+        const RAW =
+            ASSET_REPO +
+            version +
+            "/data/minecraft/recipe/";
+
+
+        const response =
             await fetch(
                 API,
                 {
@@ -754,14 +792,18 @@ async function downloadRecipes(){
             );
 
 
-        if(!r.ok)
+        if(!response.ok){
+
             throw new Error(
-                "GitHub API " + r.status
+                "No existe una carpeta de recetas para " +
+                version
             );
+
+        }
 
 
         const files =
-            await r.json();
+            await response.json();
 
 
         const jsonFiles =
@@ -777,33 +819,39 @@ async function downloadRecipes(){
         let n = 0;
 
 
-        for(const f of jsonFiles){
+        for(
+            const file
+            of jsonFiles
+        ){
 
             n++;
 
+
             status.textContent =
-                `Cargando receta ${n}/${jsonFiles.length}…`;
+                `Minecraft ${version}: `
+                +
+                `cargando receta ${n}/${jsonFiles.length}…`;
 
 
             try{
 
-                const x =
+                const result =
                     await fetch(
                         RAW +
                         encodeURIComponent(
-                            f.name
+                            file.name
                         )
                     );
 
 
-                if(x.ok){
+                if(result.ok){
 
                     const data =
-                        await x.json();
+                        await result.json();
 
 
                     all.push({
-                        file:f.name,
+                        file:file.name,
                         data:data
                     });
 
@@ -812,8 +860,8 @@ async function downloadRecipes(){
             }catch(e){
 
                 console.warn(
-                    "Error cargando",
-                    f.name
+                    "No se pudo cargar",
+                    file.name
                 );
 
             }
@@ -821,38 +869,79 @@ async function downloadRecipes(){
         }
 
 
-        /*
-           GUARDAMOS SOLO UNA VEZ.
+        if(!all.length){
 
-           Después load() leerá esta copia.
+            throw new Error(
+                "No se encontraron recetas."
+            );
+
+        }
+
+
+        /*
+           GUARDAMOS LA VERSIÓN.
+
+           Ejemplo:
+
+           minecraft_recipe_cache_26.2
+
+           minecraft_recipe_cache_26.3
+
+           minecraft_recipe_cache_26.4
         */
 
         localStorage.setItem(
-            RECIPE_CACHE,
+            recipeCacheKey(version),
             JSON.stringify(all)
         );
 
 
-        recipes = all;
+        recipes =
+            all;
+
+
+        currentVersion =
+            version;
+
+
+        localStorage.setItem(
+            CURRENT_VERSION_KEY,
+            version
+        );
+
+
+        versionLabel.textContent =
+            "Versión: " +
+            version;
 
 
         status.textContent =
-            `${recipes.length} recetas vanilla cargadas.`;
+            `${recipes.length} recetas de Minecraft ${version} guardadas.`;
 
-        cacheInfo.textContent =
-            "💾 Recetas descargadas y guardadas";
+
+        updateBox.classList.remove(
+            "show"
+        );
 
 
         render();
 
 
         /*
-           También guardamos el manifiesto.
+           Avisamos de que la actualización
+           terminó correctamente.
         */
 
-        await loadTextureManifest();
+        setTimeout(
+            () => {
 
-        render();
+                alert(
+                    `¡Recetario actualizado a Minecraft ${version}! 🎉`
+                );
+
+            },
+            100
+        );
 
 
     }catch(e){
@@ -861,34 +950,14 @@ async function downloadRecipes(){
 
 
         status.textContent =
-            "❌ No se pudieron descargar las recetas.";
+            `❌ No se pudieron descargar las recetas de ${version}.`;
 
 
-        /*
-           Por si hay una caché antigua.
-        */
-
-        const old =
-            localStorage.getItem(
-                RECIPE_CACHE
-            );
-
-
-        if(old){
-
-            try{
-
-                recipes =
-                    JSON.parse(old);
-
-                status.textContent =
-                    `${recipes.length} recetas cargadas desde la caché.`;
-
-                render();
-
-            }catch(e){}
-
-        }
+        alert(
+            "No se pudo descargar esta versión.\n\n" +
+            "Puede que la fuente de recetas todavía no tenga " +
+            "los archivos de esta versión."
+        );
 
     }
 
@@ -918,7 +987,9 @@ function resultId(d){
 
 function matches(r,q,t){
 
-    const d = r.data;
+    const d =
+        r.data;
+
 
     const text =
         (
@@ -940,7 +1011,82 @@ function matches(r,q,t){
 
 
 /* ============================================================
-   MOSTRAR TARJETAS
+   ICONOS
+============================================================ */
+
+
+/*
+   Utilizamos mcasset.cloud.
+
+   La URL incluye la versión concreta, por lo que
+   cuando cambie Minecraft también cambia la textura.
+*/
+
+function getTextureURL(id){
+
+    id =
+        cleanId(id);
+
+
+    if(!id)
+        return null;
+
+
+    return (
+        "https://mcasset.cloud/" +
+        encodeURIComponent(
+            currentVersion
+        ) +
+        "/assets/minecraft/textures/item/" +
+        encodeURIComponent(id) +
+        ".png"
+    );
+
+}
+
+
+function icon(
+    id,
+    className="",
+    alt=""
+){
+
+    const url =
+        getTextureURL(id);
+
+
+    if(!url)
+        return "";
+
+
+    return `
+
+        <img
+            class="${className}"
+            src="${esc(url)}"
+            alt="${esc(
+                alt ||
+                pretty(id)
+            )}"
+            loading="lazy"
+            onerror="
+                this.onerror=null;
+                this.src=
+                'https://mcasset.cloud/' +
+                encodeURIComponent('${esc(currentVersion)}') +
+                '/assets/minecraft/textures/block/' +
+                encodeURIComponent('${esc(cleanId(id))}') +
+                '.png';
+            "
+        >
+
+    `;
+
+}
+
+
+/* ============================================================
+   RENDER
 ============================================================ */
 
 function render(){
@@ -957,12 +1103,21 @@ function render(){
 
     const arr =
         recipes.filter(
-            r => matches(r,q,t)
+            r =>
+                matches(
+                    r,
+                    q,
+                    t
+                )
         );
 
 
     status.textContent =
-        `Mostrando ${arr.length} de ${recipes.length} recetas.`;
+        `Mostrando ${arr.length} de `
+        +
+        `${recipes.length} recetas `
+        +
+        `de Minecraft ${currentVersion}.`;
 
 
     cards.innerHTML =
@@ -970,42 +1125,50 @@ function render(){
             r => {
 
                 const id =
-                    resultId(r.data);
+                    resultId(
+                        r.data
+                    );
 
 
                 return `
 
-                <div
-                    class="card"
-                    onclick="showRecipe(${recipes.indexOf(r)})"
-                >
+                    <div
+                        class="card"
+                        onclick="
+                            showRecipe(
+                                ${recipes.indexOf(r)}
+                            )
+                        "
+                    >
 
-                    ${icon(
-                        id,
-                        "cardIcon",
-                        pretty(id)
-                    )}
+                        ${icon(
+                            id,
+                            "cardIcon",
+                            pretty(id)
+                        )}
 
-                    <div class="cardText">
+                        <div class="cardText">
 
-                        <div class="name">
-                            ${esc(pretty(id))}
-                        </div>
+                            <div class="name">
+                                ${esc(
+                                    pretty(id)
+                                )}
+                            </div>
 
-                        <div class="id">
-                            ${esc(id)}
-                        </div>
+                            <div class="id">
+                                ${esc(id)}
+                            </div>
 
-                        <div class="type">
-                            ${esc(
-                                r.data.type ||
-                                "desconocida"
-                            )}
+                            <div class="type">
+                                ${esc(
+                                    r.data.type ||
+                                    "desconocida"
+                                )}
+                            </div>
+
                         </div>
 
                     </div>
-
-                </div>
 
                 `;
 
@@ -1021,18 +1184,24 @@ function render(){
 
 function ingredientData(x){
 
-    if(!x)
+    if(!x){
+
         return {
             id:"",
             name:""
         };
 
+    }
+
 
     if(typeof x === "string"){
 
         return {
-            id:cleanId(x),
-            name:pretty(x)
+            id:
+                cleanId(x),
+
+            name:
+                pretty(x)
         };
 
     }
@@ -1041,8 +1210,15 @@ function ingredientData(x){
     if(x.item){
 
         return {
-            id:cleanId(x.item),
-            name:pretty(x.item)
+            id:
+                cleanId(
+                    x.item
+                ),
+
+            name:
+                pretty(
+                    x.item
+                )
         };
 
     }
@@ -1052,6 +1228,7 @@ function ingredientData(x){
 
         return {
             id:"",
+
             name:
                 "Cualquiera de #" +
                 pretty(x.tag)
@@ -1062,15 +1239,13 @@ function ingredientData(x){
 
     return {
         id:"",
-        name:JSON.stringify(x)
+
+        name:
+            JSON.stringify(x)
     };
 
 }
 
-
-/*
-   HTML de un ingrediente.
-*/
 
 function ingredientHTML(x){
 
@@ -1080,25 +1255,27 @@ function ingredientHTML(x){
 
     return `
 
-    <div class="ingredient">
+        <div class="ingredient">
 
-        ${
-            data.id
-            ?
-            icon(
-                data.id,
-                "",
-                data.name
-            )
-            :
-            "🧩"
-        }
+            ${
+                data.id
+                ?
+                icon(
+                    data.id,
+                    "",
+                    data.name
+                )
+                :
+                "🧩"
+            }
 
-        <span>
-            ${esc(data.name)}
-        </span>
+            <span>
+                ${esc(
+                    data.name
+                )}
+            </span>
 
-    </div>
+        </div>
 
     `;
 
@@ -1106,7 +1283,7 @@ function ingredientHTML(x){
 
 
 /* ============================================================
-   MOSTRAR RECETA
+   RECETA
 ============================================================ */
 
 function showRecipe(i){
@@ -1136,17 +1313,23 @@ function showRecipe(i){
             <div>
 
                 <h2>
-                    ${esc(pretty(result))}
+                    ${esc(
+                        pretty(result)
+                    )}
                 </h2>
 
                 <div>
 
                     <span class="badge">
-                        ${esc(d.type || "")}
+                        ${esc(
+                            d.type || ""
+                        )}
                     </span>
 
                     <span class="badge">
-                        ${esc(r.file)}
+                        Minecraft ${esc(
+                            currentVersion
+                        )}
                     </span>
 
                 </div>
@@ -1162,31 +1345,47 @@ function showRecipe(i){
 
 
     /* ========================================================
-       CRAFTEO CON FORMA
+       SHAPED
     ======================================================== */
 
     if(
-        d.type === "minecraft:crafting_shaped" ||
-        d.type === "crafting_shaped"
+        d.type ===
+            "minecraft:crafting_shaped"
+        ||
+        d.type ===
+            "crafting_shaped"
     ){
 
         const map =
             d.key || {};
+
 
         const pattern =
             d.pattern || [];
 
 
         html += `
-            <h3>🧱 Patrón de crafteo</h3>
+
+            <h3>
+                🧱 Patrón de crafteo
+            </h3>
 
             <div class="craftgrid">
+
         `;
 
 
-        for(let y=0;y<3;y++){
+        for(
+            let y=0;
+            y<3;
+            y++
+        ){
 
-            for(let x=0;x<3;x++){
+            for(
+                let x=0;
+                x<3;
+                x++
+            ){
 
                 const ch =
                     (pattern[y] || "")[x] ||
@@ -1215,7 +1414,9 @@ function showRecipe(i){
 
                         <div
                             class="slot"
-                            title="${esc(data.name)}"
+                            title="${esc(
+                                data.name
+                            )}"
                         >
 
                             ${
@@ -1231,7 +1432,9 @@ function showRecipe(i){
                             }
 
                             <div class="slotName">
-                                ${esc(data.name)}
+                                ${esc(
+                                    data.name
+                                )}
                             </div>
 
                         </div>
@@ -1248,20 +1451,36 @@ function showRecipe(i){
         html += `
             </div>
 
-            <h3>Ingredientes</h3>
+            <h3>
+                Ingredientes
+            </h3>
         `;
 
 
         for(
-            const [key,value]
-            of Object.entries(map)
+            const [
+                key,
+                value
+            ]
+            of Object.entries(
+                map
+            )
         ){
 
             html += `
+
                 <div>
-                    <b>${esc(key)}</b>
-                    ${ingredientHTML(value)}
+
+                    <b>
+                        ${esc(key)}
+                    </b>
+
+                    ${ingredientHTML(
+                        value
+                    )}
+
                 </div>
+
             `;
 
         }
@@ -1270,22 +1489,30 @@ function showRecipe(i){
 
 
     /* ========================================================
-       CRAFTEO SIN FORMA
+       SHAPELESS
     ======================================================== */
 
     else if(
-        d.type === "minecraft:crafting_shapeless" ||
-        d.type === "crafting_shapeless"
+        d.type ===
+            "minecraft:crafting_shapeless"
+        ||
+        d.type ===
+            "crafting_shapeless"
     ){
 
         html += `
-            <h3>🧩 Ingredientes</h3>
+            <h3>
+                🧩 Ingredientes
+            </h3>
         `;
 
 
         for(
             const x
-            of (d.ingredients || [])
+            of (
+                d.ingredients ||
+                []
+            )
         ){
 
             html +=
@@ -1297,7 +1524,7 @@ function showRecipe(i){
 
 
     /* ========================================================
-       HORNO / ALTO HORNO / AHUMADOR / HOGUERA
+       HORNOS
     ======================================================== */
 
     else{
@@ -1308,11 +1535,15 @@ function showRecipe(i){
 
 
         html += `
-            <h3>🔥 Ingrediente</h3>
+            <h3>
+                🔥 Ingrediente
+            </h3>
         `;
 
 
-        if(Array.isArray(ing)){
+        if(
+            Array.isArray(ing)
+        ){
 
             for(
                 const x
@@ -1332,26 +1563,34 @@ function showRecipe(i){
         }
 
 
-        if(d.cookingtime){
+        if(
+            d.cookingtime
+        ){
 
             html += `
+
                 <p>
                     ⏱️ Tiempo:
                     ${d.cookingtime}
                     ticks
                 </p>
+
             `;
 
         }
 
 
-        if(d.experience != null){
+        if(
+            d.experience != null
+        ){
 
             html += `
+
                 <p>
                     ⭐ Experiencia:
                     ${d.experience}
                 </p>
+
             `;
 
         }
@@ -1375,13 +1614,22 @@ function showRecipe(i){
 
             <div>
 
-                <b>Resultado</b>
+                <b>
+                    Resultado
+                </b>
 
                 <br>
 
-                ${esc(pretty(result))}
+                ${esc(
+                    pretty(result)
+                )}
+
                 ×
-                ${d.result?.count || 1}
+
+                ${
+                    d.result?.count ||
+                    1
+                }
 
             </div>
 
@@ -1402,7 +1650,7 @@ function showRecipe(i){
 
 
 /* ============================================================
-   CERRAR
+   CERRAR MODAL
 ============================================================ */
 
 function closeModal(){
@@ -1431,8 +1679,68 @@ type.addEventListener(
 
 
 /*
-   ESTE BOTÓN ES EL ÚNICO QUE BORRA
-   LA CACHÉ Y DESCARGA TODO OTRA VEZ.
+   Buscar actualización manualmente.
+*/
+
+checkUpdate.addEventListener(
+    "click",
+    checkForUpdates
+);
+
+
+/*
+   Aceptar actualización.
+*/
+
+acceptUpdate.addEventListener(
+    "click",
+    async () => {
+
+        if(
+            !pendingVersion
+        )
+            return;
+
+
+        updateBox.classList.remove(
+            "show"
+        );
+
+
+        await downloadVersion(
+            pendingVersion
+        );
+
+    }
+);
+
+
+/*
+   Ignorar actualización.
+
+   No se borra nada.
+*/
+
+ignoreUpdate.addEventListener(
+    "click",
+    () => {
+
+        updateBox.classList.remove(
+            "show"
+        );
+
+
+        status.textContent =
+            `Usando Minecraft ${currentVersion}.`;
+
+    }
+);
+
+
+/*
+   Actualización manual.
+
+   Borra SOLO la caché de la versión actual.
 */
 
 reload.addEventListener(
@@ -1441,42 +1749,42 @@ reload.addEventListener(
 
         if(
             !confirm(
-                "¿Quieres descargar de nuevo todas las recetas y texturas?"
+                `¿Quieres volver a descargar las recetas de Minecraft ${currentVersion}?`
             )
         )
             return;
 
 
         localStorage.removeItem(
-            RECIPE_CACHE
+            recipeCacheKey(
+                currentVersion
+            )
         );
 
-        localStorage.removeItem(
-            TEXTURE_CACHE
+
+        await downloadVersion(
+            currentVersion
         );
-
-
-        recipes = [];
-
-        textureManifest = null;
-
-
-        status.textContent =
-            "Actualizando datos…";
-
-
-        await downloadRecipes();
 
     }
 );
 
 
+/*
+   Cerrar modal haciendo click fuera.
+*/
+
 modal.addEventListener(
     "click",
     e => {
 
-        if(e.target === modal)
+        if(
+            e.target === modal
+        ){
+
             closeModal();
+
+        }
 
     }
 );
@@ -1486,7 +1794,40 @@ modal.addEventListener(
    INICIO
 ============================================================ */
 
-load();
+(async function(){
+
+    /*
+       Recuperamos la última versión utilizada.
+    */
+
+    currentVersion =
+        localStorage.getItem(
+            CURRENT_VERSION_KEY
+        ) ||
+        DEFAULT_VERSION;
+
+
+    /*
+       Cargamos inmediatamente la caché.
+
+       Así el recetario funciona incluso sin Internet.
+    */
+
+    await loadVersion(
+        currentVersion
+    );
+
+
+    /*
+       Después intentamos comprobar si Mojang
+       ha publicado una versión nueva.
+
+       Si no hay Internet, no pasa nada.
+    */
+
+    await checkForUpdates();
+
+})();
 
 </script>
 
