@@ -1,163 +1,1494 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Recetario Minecraft Java 26.2</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,sans-serif;background:#171717;color:#eee}
-header{padding:22px;background:#242424;position:sticky;top:0;z-index:5;border-bottom:1px solid #3a3a3a}
-h1{margin:0 0 6px;font-size:28px}.sub{color:#aaa}
-.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-input,select,button{background:#303030;color:#fff;border:1px solid #555;border-radius:8px;padding:10px 12px;font-size:15px}
-input{min-width:260px;flex:1}button{cursor:pointer}button:hover{background:#3b3b3b}
-main{max-width:1200px;margin:auto;padding:20px}.status{margin-bottom:16px;color:#aaa}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.card{background:#222;border:1px solid #383838;border-radius:12px;padding:14px;cursor:pointer}
-.card:hover{border-color:#777;transform:translateY(-1px)}.name{font-weight:700;margin-bottom:5px}
-.id{font-size:12px;color:#888}.type{font-size:12px;color:#aaa;margin-top:7px}
-.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-.modal.show{display:flex}.box{width:min(760px,100%);max-height:90vh;overflow:auto;background:#202020;border:1px solid #555;border-radius:14px;padding:20px}
-.close{float:right}.craftgrid{display:grid;grid-template-columns:repeat(3,64px);gap:5px;margin:16px 0}
-.slot{width:64px;height:64px;background:#111;border:1px solid #555;border-radius:6px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;padding:4px}
-.slot:not(.empty){background:#292929}.out{margin-top:10px;padding:12px;background:#292929;border-radius:8px}
-.note{font-size:13px;color:#999;line-height:1.5}
-.badge{display:inline-block;background:#383838;border-radius:999px;padding:3px 8px;font-size:12px;margin-right:5px}
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    font-family:system-ui,Segoe UI,sans-serif;
+    background:#171717;
+    color:#eee;
+}
+
+header{
+    padding:22px;
+    background:#242424;
+    position:sticky;
+    top:0;
+    z-index:5;
+    border-bottom:1px solid #3a3a3a;
+}
+
+h1{
+    margin:0 0 6px;
+    font-size:28px;
+}
+
+.sub{
+    color:#aaa;
+}
+
+.controls{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:16px;
+}
+
+input,select,button{
+    background:#303030;
+    color:#fff;
+    border:1px solid #555;
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:15px;
+}
+
+input{
+    min-width:260px;
+    flex:1;
+}
+
+button{
+    cursor:pointer;
+}
+
+button:hover{
+    background:#3b3b3b;
+}
+
+main{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.status{
+    margin-bottom:16px;
+    color:#aaa;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:
+        repeat(auto-fill,minmax(220px,1fr));
+    gap:12px;
+}
+
+.card{
+    background:#222;
+    border:1px solid #383838;
+    border-radius:12px;
+    padding:14px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    transition:.12s;
+}
+
+.card:hover{
+    border-color:#777;
+    transform:translateY(-1px);
+}
+
+.cardIcon{
+    width:52px;
+    height:52px;
+    image-rendering:pixelated;
+    object-fit:contain;
+    flex-shrink:0;
+}
+
+.cardText{
+    min-width:0;
+}
+
+.name{
+    font-weight:700;
+    margin-bottom:5px;
+}
+
+.id{
+    font-size:12px;
+    color:#888;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.type{
+    font-size:12px;
+    color:#aaa;
+    margin-top:7px;
+}
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:#000b;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:10;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.box{
+    width:min(800px,100%);
+    max-height:90vh;
+    overflow:auto;
+    background:#202020;
+    border:1px solid #555;
+    border-radius:14px;
+    padding:20px;
+}
+
+.close{
+    float:right;
+}
+
+.recipeHeader{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    margin-bottom:15px;
+}
+
+.resultBig{
+    width:72px;
+    height:72px;
+    image-rendering:pixelated;
+    object-fit:contain;
+}
+
+.craftgrid{
+    display:grid;
+    grid-template-columns:repeat(3,72px);
+    gap:6px;
+    margin:16px 0;
+}
+
+.slot{
+    width:72px;
+    height:72px;
+    background:#111;
+    border:1px solid #555;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
+
+.slot:not(.empty){
+    background:#292929;
+}
+
+.slot img{
+    width:56px;
+    height:56px;
+    image-rendering:pixelated;
+    object-fit:contain;
+}
+
+.slotName{
+    position:absolute;
+    bottom:2px;
+    left:2px;
+    right:2px;
+    background:#000b;
+    font-size:9px;
+    text-align:center;
+    padding:2px;
+    border-radius:3px;
+}
+
+.ingredient{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:#292929;
+    border-radius:8px;
+    padding:7px;
+    margin:5px 0;
+}
+
+.ingredient img{
+    width:40px;
+    height:40px;
+    image-rendering:pixelated;
+    object-fit:contain;
+}
+
+.out{
+    margin-top:15px;
+    padding:12px;
+    background:#292929;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.out img{
+    width:56px;
+    height:56px;
+    image-rendering:pixelated;
+    object-fit:contain;
+}
+
+.note{
+    font-size:13px;
+    color:#999;
+    line-height:1.5;
+}
+
+.badge{
+    display:inline-block;
+    background:#383838;
+    border-radius:999px;
+    padding:3px 8px;
+    font-size:12px;
+    margin-right:5px;
+}
+
+.cacheInfo{
+    margin-top:8px;
+    font-size:12px;
+    color:#777;
+}
+
+.spinner{
+    display:inline-block;
+    animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+    to{transform:rotate(360deg)}
+}
 </style>
 </head>
+
 <body>
+
 <header>
+
 <h1>🧱 Recetario Minecraft Java 26.2</h1>
-<div class="sub">Recetas vanilla • datos de los archivos de Minecraft 26.2</div>
-<div class="controls">
-<input id="search" placeholder="🔎 Buscar objeto o receta...">
-<select id="type"><option value="all">Todos</option><option value="crafting_shaped">Crafteo con forma</option><option value="crafting_shapeless">Crafteo sin forma</option><option value="smelting">Horno</option><option value="blasting">Alto horno</option><option value="smoking">Ahumador</option><option value="campfire">Hoguera</option></select>
-<button id="reload">↻ Actualizar datos</button>
+
+<div class="sub">
+Recetas vanilla • datos de Minecraft Java 26.2
 </div>
+
+<div class="controls">
+
+<input
+    id="search"
+    placeholder="🔎 Buscar objeto o receta..."
+>
+
+<select id="type">
+
+<option value="all">
+Todos
+</option>
+
+<option value="crafting_shaped">
+Crafteo con forma
+</option>
+
+<option value="crafting_shapeless">
+Crafteo sin forma
+</option>
+
+<option value="smelting">
+Horno
+</option>
+
+<option value="blasting">
+Alto horno
+</option>
+
+<option value="smoking">
+Ahumador
+</option>
+
+<option value="campfire">
+Hoguera
+</option>
+
+</select>
+
+<button id="reload">
+↻ Actualizar datos
+</button>
+
+</div>
+
+<div class="cacheInfo" id="cacheInfo"></div>
+
 </header>
+
+
 <main>
-<div id="status" class="status">Cargando recetas de Minecraft 26.2…</div>
+
+<div id="status" class="status">
+Cargando…
+</div>
+
 <div id="cards" class="grid"></div>
-<p class="note">La primera carga necesita Internet. Después los datos se guardan en la memoria local del navegador para poder consultar el recetario aunque no tengas conexión. Los datos proceden de los archivos de recetas de Minecraft Java 26.2.</p>
+
+<p class="note">
+La primera vez se descargan las recetas y se guardan en el navegador.
+Las siguientes veces se utilizan los datos guardados y no se vuelven a
+descargar. Pulsa «Actualizar datos» únicamente cuando quieras obtener
+una copia nueva.
+</p>
+
 </main>
 
+
 <div id="modal" class="modal">
+
 <div class="box">
-<button class="close" onclick="closeModal()">✕</button>
-<h2 id="mTitle"></h2>
+
+<button class="close" onclick="closeModal()">
+✕
+</button>
+
+<div id="mTitle"></div>
+
 <div id="mBody"></div>
+
 </div>
+
 </div>
+
 
 <script>
-const BRANCH="26.2";
-const API="https://api.github.com/repos/InventivetalentDev/minecraft-assets/contents/data/minecraft/recipe?ref="+BRANCH;
-const RAW="https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/"+BRANCH+"/data/minecraft/recipe/";
-let recipes=[];
-const cacheKey="mc26.2.recipe.index.v1";
+
+/* ============================================================
+   CONFIGURACIÓN
+============================================================ */
+
+const BRANCH = "26.2";
+
+/*
+   API DE RECETAS
+*/
+const API =
+"https://api.github.com/repos/InventivetalentDev/minecraft-assets/contents/data/minecraft/recipe?ref="
++ BRANCH;
+
+const RAW =
+"https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/"
++ BRANCH +
+"/data/minecraft/recipe/";
+
+
+/*
+   Biblioteca de texturas 26.2
+
+   El proyecto minecraft-textures contiene manifiestos
+   y PNG de Minecraft 26.2.
+*/
+const TEXTURE_MANIFEST =
+"https://unpkg.com/minecraft-textures@26.2.1/dist/textures/manifest/26.2.json";
+
+const TEXTURE_BASE =
+"https://unpkg.com/minecraft-textures@26.2.1/dist/textures/";
+
+
+/* ============================================================
+   VARIABLES
+============================================================ */
+
+let recipes = [];
+
+let textureManifest = null;
+
+
+/*
+   IMPORTANTE:
+
+   Las recetas se guardan aquí.
+
+   No se descargan otra vez al abrir el HTML.
+*/
+const RECIPE_CACHE =
+"mc26.2.recipe.index.v2";
+
+
+/*
+   El manifiesto de texturas también se guarda.
+*/
+const TEXTURE_CACHE =
+"mc26.2.texture.manifest.v1";
+
+
+/*
+   Evita descargar varias veces la misma textura.
+*/
+const textureURLCache = {};
+
+
+/* ============================================================
+   UTILIDADES
+============================================================ */
 
 function pretty(id){
-  id=(id||"").replace(/^minecraft:/,"").replaceAll("_"," ");
-  return id.replace(/\b\w/g,c=>c.toUpperCase());
+
+    id = (id || "")
+        .replace(/^minecraft:/,"")
+        .replaceAll("_"," ");
+
+    return id.replace(
+        /\b\w/g,
+        c => c.toUpperCase()
+    );
 }
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+
+function cleanId(id){
+
+    if(!id) return "";
+
+    return id
+        .replace(/^minecraft:/,"")
+        .trim();
+
+}
+
+
+function esc(s){
+
+    return String(s).replace(
+        /[&<>"']/g,
+
+        c => ({
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            '"':"&quot;",
+            "'":"&#39;"
+        }[c])
+    );
+
+}
+
+
+/* ============================================================
+   TEXTURAS
+============================================================ */
+
+async function loadTextureManifest(){
+
+    /*
+       Primero intentamos usar la copia guardada.
+    */
+
+    const saved =
+        localStorage.getItem(TEXTURE_CACHE);
+
+    if(saved){
+
+        try{
+
+            textureManifest =
+                JSON.parse(saved);
+
+            cacheInfo.textContent =
+                "🖼️ Texturas guardadas en caché";
+
+            return;
+
+        }catch(e){
+
+            localStorage.removeItem(TEXTURE_CACHE);
+
+        }
+
+    }
+
+
+    /*
+       Si no existe, descargamos el manifiesto UNA VEZ.
+    */
+
+    try{
+
+        const response =
+            await fetch(TEXTURE_MANIFEST);
+
+        if(!response.ok)
+            throw new Error(
+                "No se pudo descargar el manifiesto"
+            );
+
+        textureManifest =
+            await response.json();
+
+        localStorage.setItem(
+            TEXTURE_CACHE,
+            JSON.stringify(textureManifest)
+        );
+
+        cacheInfo.textContent =
+            "🖼️ Texturas descargadas y guardadas";
+
+    }catch(e){
+
+        console.warn(
+            "No se pudo cargar el manifiesto de texturas",
+            e
+        );
+
+        textureManifest = null;
+
+        cacheInfo.textContent =
+            "⚠️ No se pudo cargar el manifiesto de texturas";
+
+    }
+
+}
+
+
+/*
+   Busca la textura correspondiente a un item.
+*/
+
+function getTextureURL(id){
+
+    if(!id)
+        return null;
+
+    id = cleanId(id);
+
+    if(textureURLCache[id])
+        return textureURLCache[id];
+
+
+    /*
+       Si tenemos manifiesto, buscamos el item.
+    */
+
+    if(textureManifest){
+
+        const items =
+            textureManifest.items || [];
+
+        const found =
+            items.find(
+                x =>
+                    x.id === "minecraft:" + id ||
+                    x.id === id
+            );
+
+        if(found && found.texture){
+
+            let path =
+                found.texture;
+
+            /*
+               El manifiesto devuelve la ruta relativa.
+            */
+
+            const url =
+                TEXTURE_BASE + path;
+
+            textureURLCache[id] = url;
+
+            return url;
+
+        }
+
+    }
+
+
+    /*
+       Fallback.
+
+       Algunas texturas utilizan directamente
+       assets/minecraft/textures/item/
+       o block/.
+    */
+
+    const fallback =
+        TEXTURE_BASE +
+        "assets/minecraft/textures/item/" +
+        id +
+        ".png";
+
+    textureURLCache[id] =
+        fallback;
+
+    return fallback;
+
+}
+
+
+/*
+   Crea una imagen de Minecraft.
+
+   Si falla, simplemente muestra un bloque
+   de sustitución para que la receta siga funcionando.
+*/
+
+function icon(id, className="", alt=""){
+
+    const url =
+        getTextureURL(id);
+
+    if(!url)
+        return "";
+
+    return `
+        <img
+            class="${className}"
+            src="${esc(url)}"
+            alt="${esc(alt || pretty(id))}"
+            loading="lazy"
+            onerror="this.style.display='none'"
+        >
+    `;
+
+}
+
+
+/* ============================================================
+   CARGA DE RECETAS
+============================================================ */
 
 async function load(){
-  status.textContent="Buscando lista de recetas…";
-  try{
-    const r=await fetch(API,{headers:{Accept:"application/vnd.github+json"}});
-    if(!r.ok) throw new Error("GitHub API "+r.status);
-    const files=await r.json();
-    const jsonFiles=files.filter(x=>x.name.endsWith(".json"));
-    const all=[];
-    let n=0;
-    for(const f of jsonFiles){
-      n++; status.textContent=`Cargando receta ${n}/${jsonFiles.length}…`;
-      try{
-        const x=await fetch(RAW+encodeURIComponent(f.name));
-        if(x.ok){
-          const data=await x.json();
-          all.push({file:f.name,data});
-        }
-      }catch(e){}
-    }
-    localStorage.setItem(cacheKey,JSON.stringify(all));
-    recipes=all;
-    status.textContent=`${recipes.length} recetas vanilla cargadas desde Minecraft Java 26.2.`;
-    render();
-  }catch(e){
-    const saved=localStorage.getItem(cacheKey);
+
+    /*
+       PRIMERA COSA:
+
+       Miramos si ya tenemos las recetas guardadas.
+
+       Si existen → NO hacemos ninguna petición.
+    */
+
+    const saved =
+        localStorage.getItem(RECIPE_CACHE);
+
+
     if(saved){
-      recipes=JSON.parse(saved);
-      status.textContent=`Sin Internet: usando ${recipes.length} recetas guardadas anteriormente.`;
-      render();
-    }else{
-      status.textContent="No se pudieron cargar las recetas. Conéctate a Internet y pulsa «Actualizar datos».";
+
+        try{
+
+            recipes =
+                JSON.parse(saved);
+
+            status.textContent =
+                `${recipes.length} recetas cargadas desde la caché.`;
+
+            cacheInfo.textContent =
+                "💾 Recetas guardadas localmente";
+
+            render();
+
+            /*
+               Cargamos también el manifiesto de texturas.
+            */
+
+            await loadTextureManifest();
+
+            render();
+
+            return;
+
+        }catch(e){
+
+            console.warn(
+                "Caché dañada, se volverá a descargar."
+            );
+
+            localStorage.removeItem(
+                RECIPE_CACHE
+            );
+
+        }
+
     }
-  }
+
+
+    /*
+       SOLO LLEGAMOS AQUÍ LA PRIMERA VEZ.
+    */
+
+    await downloadRecipes();
+
 }
 
-function resultId(d){
-  if(d.result?.id) return d.result.id;
-  if(d.result?.item) return d.result.item;
-  return d.result?.item || "unknown";
-}
-function matches(r,q,t){
-  const d=r.data, text=(r.file+" "+JSON.stringify(d)).toLowerCase();
-  return (!q||text.includes(q)) && (t==="all"||d.type?.includes(t));
-}
-function render(){
-  const q=search.value.trim().toLowerCase(), t=type.value;
-  const arr=recipes.filter(r=>matches(r,q,t));
-  status.textContent=`Mostrando ${arr.length} de ${recipes.length} recetas.`;
-  cards.innerHTML=arr.map((r,i)=>{
-    const id=resultId(r.data);
-    return `<div class="card" onclick="showRecipe(${recipes.indexOf(r)})">
-      <div class="name">${esc(pretty(id))}</div>
-      <div class="id">${esc(id)}</div>
-      <div class="type">${esc(r.data.type||"desconocida")}</div>
-    </div>`;
-  }).join("");
-}
-function ingredientName(x){
-  if(!x)return "";
-  if(typeof x==="string")return pretty(x);
-  if(x.item)return pretty(x.item);
-  if(x.tag)return "Cualquiera de #"+pretty(x.tag);
-  return JSON.stringify(x);
-}
-function showRecipe(i){
-  const r=recipes[i],d=r.data;
-  mTitle.textContent=pretty(resultId(d));
-  let html=`<div><span class="badge">${esc(d.type||"")}</span><span class="badge">${esc(r.file)}</span></div>`;
-  if(d.type==="minecraft:crafting_shaped"||d.type==="crafting_shaped"){
-    const map=d.key||{}, p=d.pattern||[];
-    html+=`<h3>🧱 Patrón de crafteo</h3><div class="craftgrid">`;
-    for(let y=0;y<3;y++)for(let x=0;x<3;x++){
-      const ch=(p[y]||"")[x]||" ";
-      html+=ch===" "||!ch?`<div class="slot empty"></div>`:`<div class="slot">${esc(ingredientName(map[ch]))}</div>`;
+
+/* ============================================================
+   DESCARGAR RECETAS
+============================================================ */
+
+async function downloadRecipes(){
+
+    status.innerHTML =
+        '<span class="spinner">⟳</span> Buscando recetas…';
+
+
+    try{
+
+        const r =
+            await fetch(
+                API,
+                {
+                    headers:{
+                        Accept:
+                        "application/vnd.github+json"
+                    }
+                }
+            );
+
+
+        if(!r.ok)
+            throw new Error(
+                "GitHub API " + r.status
+            );
+
+
+        const files =
+            await r.json();
+
+
+        const jsonFiles =
+            files.filter(
+                x =>
+                    x.name.endsWith(".json")
+            );
+
+
+        const all = [];
+
+
+        let n = 0;
+
+
+        for(const f of jsonFiles){
+
+            n++;
+
+            status.textContent =
+                `Cargando receta ${n}/${jsonFiles.length}…`;
+
+
+            try{
+
+                const x =
+                    await fetch(
+                        RAW +
+                        encodeURIComponent(
+                            f.name
+                        )
+                    );
+
+
+                if(x.ok){
+
+                    const data =
+                        await x.json();
+
+
+                    all.push({
+                        file:f.name,
+                        data:data
+                    });
+
+                }
+
+            }catch(e){
+
+                console.warn(
+                    "Error cargando",
+                    f.name
+                );
+
+            }
+
+        }
+
+
+        /*
+           GUARDAMOS SOLO UNA VEZ.
+
+           Después load() leerá esta copia.
+        */
+
+        localStorage.setItem(
+            RECIPE_CACHE,
+            JSON.stringify(all)
+        );
+
+
+        recipes = all;
+
+
+        status.textContent =
+            `${recipes.length} recetas vanilla cargadas.`;
+
+        cacheInfo.textContent =
+            "💾 Recetas descargadas y guardadas";
+
+
+        render();
+
+
+        /*
+           También guardamos el manifiesto.
+        */
+
+        await loadTextureManifest();
+
+        render();
+
+
+    }catch(e){
+
+        console.error(e);
+
+
+        status.textContent =
+            "❌ No se pudieron descargar las recetas.";
+
+
+        /*
+           Por si hay una caché antigua.
+        */
+
+        const old =
+            localStorage.getItem(
+                RECIPE_CACHE
+            );
+
+
+        if(old){
+
+            try{
+
+                recipes =
+                    JSON.parse(old);
+
+                status.textContent =
+                    `${recipes.length} recetas cargadas desde la caché.`;
+
+                render();
+
+            }catch(e){}
+
+        }
+
     }
-    html+=`</div>`;
-    html+=`<h3>Ingredientes</h3><ul>`;
-    for(const [k,v] of Object.entries(map)) html+=`<li><b>${esc(k)}</b> → ${esc(ingredientName(v))}</li>`;
-    html+=`</ul>`;
-  }else if(d.type==="minecraft:crafting_shapeless"||d.type==="crafting_shapeless"){
-    html+=`<h3>🧩 Ingredientes</h3><ul>`;
-    for(const x of (d.ingredients||[])) html+=`<li>${esc(ingredientName(x))}</li>`;
-    html+=`</ul>`;
-  }else{
-    const ing=d.ingredient||d.ingredients;
-    html+=`<h3>🔥 Ingrediente</h3><p>${esc(ingredientName(ing))}</p>`;
-    if(d.cookingtime) html+=`<p>Tiempo: ${d.cookingtime} ticks</p>`;
-    if(d.experience!=null) html+=`<p>Experiencia: ${d.experience}</p>`;
-  }
-  html+=`<div class="out"><b>Resultado:</b> ${esc(pretty(resultId(d)))} × ${d.result?.count||1}</div>`;
-  mBody.innerHTML=html;modal.classList.add("show");
+
 }
-function closeModal(){modal.classList.remove("show")}
-search.addEventListener("input",render);type.addEventListener("change",render);
-reload.addEventListener("click",()=>{localStorage.removeItem(cacheKey);load()});
-modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+
+
+/* ============================================================
+   RESULTADO
+============================================================ */
+
+function resultId(d){
+
+    if(d.result?.id)
+        return d.result.id;
+
+    if(d.result?.item)
+        return d.result.item;
+
+    return "unknown";
+
+}
+
+
+/* ============================================================
+   BUSCADOR
+============================================================ */
+
+function matches(r,q,t){
+
+    const d = r.data;
+
+    const text =
+        (
+            r.file +
+            " " +
+            JSON.stringify(d)
+        ).toLowerCase();
+
+
+    return (
+        (!q || text.includes(q)) &&
+        (
+            t === "all" ||
+            d.type?.includes(t)
+        )
+    );
+
+}
+
+
+/* ============================================================
+   MOSTRAR TARJETAS
+============================================================ */
+
+function render(){
+
+    const q =
+        search.value
+            .trim()
+            .toLowerCase();
+
+
+    const t =
+        type.value;
+
+
+    const arr =
+        recipes.filter(
+            r => matches(r,q,t)
+        );
+
+
+    status.textContent =
+        `Mostrando ${arr.length} de ${recipes.length} recetas.`;
+
+
+    cards.innerHTML =
+        arr.map(
+            r => {
+
+                const id =
+                    resultId(r.data);
+
+
+                return `
+
+                <div
+                    class="card"
+                    onclick="showRecipe(${recipes.indexOf(r)})"
+                >
+
+                    ${icon(
+                        id,
+                        "cardIcon",
+                        pretty(id)
+                    )}
+
+                    <div class="cardText">
+
+                        <div class="name">
+                            ${esc(pretty(id))}
+                        </div>
+
+                        <div class="id">
+                            ${esc(id)}
+                        </div>
+
+                        <div class="type">
+                            ${esc(
+                                r.data.type ||
+                                "desconocida"
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+/* ============================================================
+   INGREDIENTES
+============================================================ */
+
+function ingredientData(x){
+
+    if(!x)
+        return {
+            id:"",
+            name:""
+        };
+
+
+    if(typeof x === "string"){
+
+        return {
+            id:cleanId(x),
+            name:pretty(x)
+        };
+
+    }
+
+
+    if(x.item){
+
+        return {
+            id:cleanId(x.item),
+            name:pretty(x.item)
+        };
+
+    }
+
+
+    if(x.tag){
+
+        return {
+            id:"",
+            name:
+                "Cualquiera de #" +
+                pretty(x.tag)
+        };
+
+    }
+
+
+    return {
+        id:"",
+        name:JSON.stringify(x)
+    };
+
+}
+
+
+/*
+   HTML de un ingrediente.
+*/
+
+function ingredientHTML(x){
+
+    const data =
+        ingredientData(x);
+
+
+    return `
+
+    <div class="ingredient">
+
+        ${
+            data.id
+            ?
+            icon(
+                data.id,
+                "",
+                data.name
+            )
+            :
+            "🧩"
+        }
+
+        <span>
+            ${esc(data.name)}
+        </span>
+
+    </div>
+
+    `;
+
+}
+
+
+/* ============================================================
+   MOSTRAR RECETA
+============================================================ */
+
+function showRecipe(i){
+
+    const r =
+        recipes[i];
+
+
+    const d =
+        r.data;
+
+
+    const result =
+        resultId(d);
+
+
+    mTitle.innerHTML = `
+
+        <div class="recipeHeader">
+
+            ${icon(
+                result,
+                "resultBig",
+                pretty(result)
+            )}
+
+            <div>
+
+                <h2>
+                    ${esc(pretty(result))}
+                </h2>
+
+                <div>
+
+                    <span class="badge">
+                        ${esc(d.type || "")}
+                    </span>
+
+                    <span class="badge">
+                        ${esc(r.file)}
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    let html = "";
+
+
+    /* ========================================================
+       CRAFTEO CON FORMA
+    ======================================================== */
+
+    if(
+        d.type === "minecraft:crafting_shaped" ||
+        d.type === "crafting_shaped"
+    ){
+
+        const map =
+            d.key || {};
+
+        const pattern =
+            d.pattern || [];
+
+
+        html += `
+            <h3>🧱 Patrón de crafteo</h3>
+
+            <div class="craftgrid">
+        `;
+
+
+        for(let y=0;y<3;y++){
+
+            for(let x=0;x<3;x++){
+
+                const ch =
+                    (pattern[y] || "")[x] ||
+                    " ";
+
+
+                if(
+                    ch === " " ||
+                    !ch
+                ){
+
+                    html += `
+                        <div class="slot empty">
+                        </div>
+                    `;
+
+                }else{
+
+                    const data =
+                        ingredientData(
+                            map[ch]
+                        );
+
+
+                    html += `
+
+                        <div
+                            class="slot"
+                            title="${esc(data.name)}"
+                        >
+
+                            ${
+                                data.id
+                                ?
+                                icon(
+                                    data.id,
+                                    "",
+                                    data.name
+                                )
+                                :
+                                "🧩"
+                            }
+
+                            <div class="slotName">
+                                ${esc(data.name)}
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+
+            }
+
+        }
+
+
+        html += `
+            </div>
+
+            <h3>Ingredientes</h3>
+        `;
+
+
+        for(
+            const [key,value]
+            of Object.entries(map)
+        ){
+
+            html += `
+                <div>
+                    <b>${esc(key)}</b>
+                    ${ingredientHTML(value)}
+                </div>
+            `;
+
+        }
+
+    }
+
+
+    /* ========================================================
+       CRAFTEO SIN FORMA
+    ======================================================== */
+
+    else if(
+        d.type === "minecraft:crafting_shapeless" ||
+        d.type === "crafting_shapeless"
+    ){
+
+        html += `
+            <h3>🧩 Ingredientes</h3>
+        `;
+
+
+        for(
+            const x
+            of (d.ingredients || [])
+        ){
+
+            html +=
+                ingredientHTML(x);
+
+        }
+
+    }
+
+
+    /* ========================================================
+       HORNO / ALTO HORNO / AHUMADOR / HOGUERA
+    ======================================================== */
+
+    else{
+
+        const ing =
+            d.ingredient ||
+            d.ingredients;
+
+
+        html += `
+            <h3>🔥 Ingrediente</h3>
+        `;
+
+
+        if(Array.isArray(ing)){
+
+            for(
+                const x
+                of ing
+            ){
+
+                html +=
+                    ingredientHTML(x);
+
+            }
+
+        }else{
+
+            html +=
+                ingredientHTML(ing);
+
+        }
+
+
+        if(d.cookingtime){
+
+            html += `
+                <p>
+                    ⏱️ Tiempo:
+                    ${d.cookingtime}
+                    ticks
+                </p>
+            `;
+
+        }
+
+
+        if(d.experience != null){
+
+            html += `
+                <p>
+                    ⭐ Experiencia:
+                    ${d.experience}
+                </p>
+            `;
+
+        }
+
+    }
+
+
+    /* ========================================================
+       RESULTADO
+    ======================================================== */
+
+    html += `
+
+        <div class="out">
+
+            ${icon(
+                result,
+                "",
+                pretty(result)
+            )}
+
+            <div>
+
+                <b>Resultado</b>
+
+                <br>
+
+                ${esc(pretty(result))}
+                ×
+                ${d.result?.count || 1}
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    mBody.innerHTML =
+        html;
+
+
+    modal.classList.add(
+        "show"
+    );
+
+}
+
+
+/* ============================================================
+   CERRAR
+============================================================ */
+
+function closeModal(){
+
+    modal.classList.remove(
+        "show"
+    );
+
+}
+
+
+/* ============================================================
+   EVENTOS
+============================================================ */
+
+search.addEventListener(
+    "input",
+    render
+);
+
+
+type.addEventListener(
+    "change",
+    render
+);
+
+
+/*
+   ESTE BOTÓN ES EL ÚNICO QUE BORRA
+   LA CACHÉ Y DESCARGA TODO OTRA VEZ.
+*/
+
+reload.addEventListener(
+    "click",
+    async () => {
+
+        if(
+            !confirm(
+                "¿Quieres descargar de nuevo todas las recetas y texturas?"
+            )
+        )
+            return;
+
+
+        localStorage.removeItem(
+            RECIPE_CACHE
+        );
+
+        localStorage.removeItem(
+            TEXTURE_CACHE
+        );
+
+
+        recipes = [];
+
+        textureManifest = null;
+
+
+        status.textContent =
+            "Actualizando datos…";
+
+
+        await downloadRecipes();
+
+    }
+);
+
+
+modal.addEventListener(
+    "click",
+    e => {
+
+        if(e.target === modal)
+            closeModal();
+
+    }
+);
+
+
+/* ============================================================
+   INICIO
+============================================================ */
+
 load();
+
 </script>
+
 </body>
 </html>
